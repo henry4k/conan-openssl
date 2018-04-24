@@ -67,7 +67,7 @@ class OpenSSLConan(ConanFile):
 
     def requirements(self):
         if not self.options.no_zlib:
-            self.requires("zlib/1.2.11@conan/stable")
+            self.requires("zlib/1.2.11@henry4k/stable")
 
     @property
     def subfolder(self):
@@ -337,8 +337,8 @@ class OpenSSLConan(ConanFile):
                     os.rename(old, new)
 
     def mingw_build(self, config_options_string):
-        # https://netix.dl.sourceforge.net/project/msys2/Base/x86_64/msys2-x86_64-20161025.exe
-        config_options_string = tools.unix_path(config_options_string)
+        if tools.os_info.is_windows:
+            config_options_string = tools.unix_path(config_options_string)
         if self.settings.build_type == "Debug":
             config_options_string = "-g " + config_options_string
         if self.settings.arch == "x86":
@@ -347,10 +347,15 @@ class OpenSSLConan(ConanFile):
             config_line = "./Configure mingw64 %s" % config_options_string
         self.output.warn(config_line)
         with tools.chdir(self.subfolder):
-            tools.run_in_windows_bash(self, config_line)
-            self.output.warn("----------MAKE OPENSSL %s-------------" % self.version)
-            # tools.run_in_windows_bash(self, "make depend")
-            tools.run_in_windows_bash(self, "make")
+            if tools.os_info.is_windows:
+                tools.run_in_windows_bash(self, config_line)
+                self.output.warn("----------MAKE OPENSSL %s-------------" % self.version)
+                # tools.run_in_windows_bash(self, "make depend")
+                tools.run_in_windows_bash(self, "make")
+            else:
+                self.run(config_line)
+                self.output.warn("----------MAKE OPENSSL %s-------------" % self.version)
+                self.run("make")
 
     def package(self):
         # Copy the license files
